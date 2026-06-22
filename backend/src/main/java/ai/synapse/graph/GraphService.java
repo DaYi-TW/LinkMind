@@ -8,19 +8,21 @@ import static ai.synapse.graph.GraphModels.*;
 @Service public class GraphService {
  private final NodeRepository nodeRepo; private final EdgeRepository edgeRepo;
  public GraphService(NodeRepository nodeRepo,EdgeRepository edgeRepo){this.nodeRepo=nodeRepo;this.edgeRepo=edgeRepo;}
+ // Universal node taxonomy for a personal knowledge graph (domain-agnostic).
+ private static final Set<String> TYPES=Set.of("Concept","Person","Place","Event","Work","Source","Idea");
  private static final List<Node> SEED_NODES=List.of(
-  new Node("diabetes","糖尿病","Disease",50,43,34,"慢性代謝性疾病，與胰島素分泌或作用異常相關。",28,List.of("metformin","hba1c","kidney","insulin")),
-  new Node("metformin","Metformin","Drug",68,28,27,"第一線口服降血糖藥物，可降低肝臟葡萄糖生成。",12,List.of("diabetes","kidney","lactic")),
-  new Node("hba1c","HbA1c","Lab",31,25,23,"反映近 2–3 個月平均血糖控制狀態的檢驗指標。",17,List.of("diabetes","guideline")),
-  new Node("kidney","腎功能","Concept",76,55,22,"影響 Metformin 用藥評估與劑量調整的重要因素。",9,List.of("metformin","lactic")),
-  new Node("lactic","乳酸中毒","Disease",66,74,19,"少見但嚴重的不良反應，腎功能不全時風險增加。",6,List.of("metformin","kidney")),
-  new Node("insulin","胰島素阻抗","Concept",31,66,23,"第二型糖尿病的重要病理機轉。",21,List.of("diabetes","exercise")),
-  new Node("guideline","ADA 2025 指引","Document",14,40,19,"糖尿病照護標準與臨床決策參考文件。",1,List.of("hba1c","diabetes")),
-  new Node("exercise","運動介入","Concept",43,81,18,"改善胰島素敏感性與代謝指標的非藥物策略。",14,List.of("insulin","hypertension")),
-  new Node("hypertension","高血壓","Disease",20,75,21,"常與糖尿病共病，會增加心血管與腎臟併發症風險。",19,List.of("diabetes","exercise","sglt2")),
-  new Node("sglt2","SGLT2 抑制劑","Drug",87,39,23,"具降血糖、心血管與腎臟保護效益的藥物類別。",11,List.of("diabetes","kidney","hypertension")));
+  new Node("knowledge-graph","知識圖譜","Concept",50,46,34,"用節點與關聯來組織知識的方法，是這個工具的核心概念。",12,List.of("second-brain","note-taking","zettelkasten","graph-theory")),
+  new Node("second-brain","第二大腦","Idea",70,30,27,"把記憶與思考外部化到數位系統，讓大腦專注於連結與創造。",9,List.of("knowledge-graph","note-taking","tiago-forte")),
+  new Node("zettelkasten","Zettelkasten","Concept",30,28,24,"卡片盒筆記法：每則筆記原子化並彼此連結，由 Niklas Luhmann 發揚。",7,List.of("knowledge-graph","note-taking","luhmann")),
+  new Node("note-taking","筆記法","Concept",52,68,23,"擷取與組織想法的實踐；連結式筆記是知識圖譜的基礎。",11,List.of("knowledge-graph","second-brain","zettelkasten","obsidian")),
+  new Node("obsidian","Obsidian","Work",78,58,21,"以雙向連結與本地 Markdown 著稱的筆記軟體。",5,List.of("note-taking","graph-theory")),
+  new Node("graph-theory","圖論","Concept",26,58,22,"研究節點與邊的數學分支，支撐了知識圖譜的結構。",8,List.of("knowledge-graph","obsidian","euler")),
+  new Node("luhmann","Niklas Luhmann","Person",16,36,19,"德國社會學家，以 9 萬張卡片的 Zettelkasten 系統聞名。",4,List.of("zettelkasten")),
+  new Node("tiago-forte","Tiago Forte","Person",86,24,18,"《Building a Second Brain》作者，提出 CODE 與 PARA 方法。",3,List.of("second-brain")),
+  new Node("euler","Leonhard Euler","Person",14,72,18,"奠定圖論的數學家，柯尼斯堡七橋問題的解答者。",4,List.of("graph-theory")),
+  new Node("building-second-brain","Building a Second Brain","Source",92,40,19,"Tiago Forte 闡述個人知識管理方法的著作。",2,List.of("tiago-forte","second-brain")));
  private static final List<Edge> SEED_EDGES=List.of(
-  edge("diabetes","metformin","TREATED_BY"),edge("diabetes","hba1c","MEASURED_BY"),edge("metformin","kidney","CAUTION_WITH"),edge("kidney","lactic","RISK_OF"),edge("metformin","lactic","MAY_CAUSE"),edge("diabetes","insulin","RELATED_TO"),edge("hba1c","guideline","REFERENCED_BY"),edge("guideline","diabetes","DESCRIBES"),edge("insulin","exercise","IMPROVED_BY"),edge("diabetes","hypertension","COMORBID_WITH"),edge("diabetes","sglt2","TREATED_BY"),edge("sglt2","kidney","PROTECTS"),edge("exercise","hypertension","IMPROVES"));
+  edge("knowledge-graph","second-brain","ENABLES"),edge("knowledge-graph","zettelkasten","INSPIRED_BY"),edge("knowledge-graph","note-taking","BUILT_ON"),edge("knowledge-graph","graph-theory","GROUNDED_IN"),edge("second-brain","note-taking","PRACTICED_AS"),edge("second-brain","tiago-forte","COINED_BY"),edge("zettelkasten","note-taking","IS_A"),edge("zettelkasten","luhmann","CREATED_BY"),edge("note-taking","obsidian","TOOL_FOR"),edge("obsidian","graph-theory","VISUALIZES"),edge("graph-theory","euler","FOUNDED_BY"),edge("building-second-brain","tiago-forte","WRITTEN_BY"),edge("building-second-brain","second-brain","DESCRIBES"));
  private static final List<String> ORDER=SEED_NODES.stream().map(Node::id).collect(Collectors.toList());
  @EventListener(ApplicationReadyEvent.class) public void seed(){
   if(nodeRepo.count()==0) nodeRepo.saveAll(SEED_NODES);
@@ -65,7 +67,7 @@ import static ai.synapse.graph.GraphModels.*;
   if(id.isEmpty()) throw new IllegalArgumentException("Label must contain at least one usable character");
   if(nodeRepo.existsById(id)) throw new IllegalStateException("A node with this label already exists");
   String type=request.type().trim();
-  if(!Set.of("Disease","Drug","Lab","Document","Concept").contains(type)) throw new IllegalArgumentException("Unknown node type");
+  if(!TYPES.contains(type)) throw new IllegalArgumentException("Unknown node type");
   String desc=request.description()==null?"":request.description().trim();
   // New nodes spawn near the centre with a default size; coordinates only seed the 3D layout.
   Node node=new Node(id,request.label().trim(),type,50,50,20,desc,0,List.of());

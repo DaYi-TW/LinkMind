@@ -9,4 +9,8 @@ public final class GraphModels {
   @Document("edges") public record Edge(@Id String id,String a,String b,String label){}
   public record GraphResponse(List<Node> nodes,List<Edge> edges){}
   public record CreateEdgeRequest(@NotBlank String sourceId,@NotBlank String targetId,@NotBlank String relation){}
+  public record CreateNodeRequest(@NotBlank String label,@NotBlank String type,String description){}
+  // A connection as seen from a given node: the neighbour id and the relation label oriented for display.
+  public record Connection(String nodeId,String label,boolean outgoing){}
+  public record AskResponse(String answer,List<String> nodeIds,List<Edge> path){}
 }

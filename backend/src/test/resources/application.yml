@@ -1,0 +1,9 @@
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.4
+spring:
+  data:
+    mongodb:
+      database: synapse_test
